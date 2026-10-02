@@ -92,6 +92,9 @@ describe('dashboard e plano', () => {
     expect(d.nutrition.targets.protein).toBe(160);
     expect(d.weight.current).toBe(75);
     expect(typeof d.recommendation).toBe('string');
+    // A agenda já existe no primeiro acesso ao dashboard (sem precisar abrir Treinos).
+    const planned = (await req('GET', '/api/plan/week')).json().sessions.filter((s: any) => s.date === today);
+    expect(d.sessions.length).toBe(planned.length);
   });
   it('gera a semana com esportes e musculação sem dias duplicados', async () => {
     const r = await req('GET', '/api/plan/week');
@@ -299,6 +302,10 @@ describe('relatórios, metas e exportação', () => {
     expect(r.statusCode).toBe(200);
     expect(r.json().training.lifts.done).toBeGreaterThanOrEqual(1);
     expect(typeof r.json().summary).toBe('string');
+  });
+  it('relatório de semana anterior à conta não inventa cobrança', async () => {
+    const r = (await req('GET', `/api/reports/weekly?week=${addDays(today, -60)}`)).json();
+    expect(r.noData).toBe(true);
   });
   it('metas com progresso', async () => {
     const g = (await req('GET', '/api/goals')).json().goals;

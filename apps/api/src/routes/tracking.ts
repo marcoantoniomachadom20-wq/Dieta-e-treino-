@@ -16,6 +16,7 @@ import type { AppContext } from '../app';
 import { requireAuth } from '../auth';
 import { adaptiveEstimate, energyFor, goalsWithProgress, insights, liftHistory, sessionsBetween, weeklyReport, dashboard } from '../services/metrics';
 import { dailyRecommendation } from '../services/recommend';
+import { ensureWeekPlan } from '../services/plan';
 import { getUser, userToday } from '../services/users';
 import { idParam, isoDate, notFound, parse } from './_util';
 import { GOAL_KIND_LABEL } from '@app/core';
@@ -27,6 +28,9 @@ export async function trackingRoutes(app: FastifyInstance, { db }: AppContext) {
 
   app.get('/api/dashboard', async (req) => {
     const q = parse(z.object({ date: isoDate.optional() }), req.query);
+    // A agenda da semana precisa existir antes de montar o resumo do dia.
+    const u = getUser(db, req.userId);
+    ensureWeekPlan(db, u, weekStart(q.date ?? userToday(u)));
     const d = dashboard(db, req.userId, q.date);
     const sessionsWithCode = db
       .prepare(`SELECT w.*, t.code AS template_code FROM workouts w LEFT JOIN workout_templates t ON t.id = w.template_id WHERE w.user_id = ? AND w.date = ? ORDER BY COALESCE(w.planned_time,'99')`)
@@ -224,9 +228,14 @@ export async function trackingRoutes(app: FastifyInstance, { db }: AppContext) {
     const user = getUser(db, req.userId);
     const today = userToday(user);
     const q = parse(z.object({ week: isoDate.optional() }), req.query);
-    // Padrão: semana atual se for domingo; senão, a semana anterior (completa).
-    const ws = q.week ? weekStart(q.week) : weekday(today) === 0 ? weekStart(today) : addDays(weekStart(today), -7);
-    return { ...weeklyReport(db, user, ws), isComplete: addDays(ws, 6) <= today };
+    // Padrão: semana atual se for domingo; senão, a anterior (completa) — a menos que ela seja anterior à conta.
+    const created = user.created_at.slice(0, 10);
+    let ws = q.week ? weekStart(q.week) : weekday(today) === 0 ? weekStart(today) : addDays(weekStart(today), -7);
+    if (!q.week && addDays(ws, 6) < created) ws = weekStart(today);
+    if (addDays(ws, 6) < created) {
+      return { weekStart: ws, weekEnd: addDays(ws, 6), noData: true, message: `Sem dados: sua conta começou em ${created.split('-').reverse().join('/')}.` };
+    }
+    return { ...weeklyReport(db, user, ws), isComplete: addDays(ws, 6) <= today, noData: false };
   });
 
   app.get('/api/insights', async (req) => {

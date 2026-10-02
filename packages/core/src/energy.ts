@@ -102,6 +102,8 @@ export interface EnergyBalance {
   label: 'deficit' | 'superavit' | 'manutencao';
   confidence: Confidence;
   warnings: string[];
+  /** Registro insuficiente: o número não deve ser exibido como déficit. */
+  insufficient: boolean;
 }
 
 /** Balanço = consumo − gasto. Negativo = déficit. Sempre uma faixa, nunca um número exato. */
@@ -124,7 +126,8 @@ export function energyBalance(i: BalanceInput): EnergyBalance {
   else if (balanceLow > 0) label = 'superavit';
   else if (balance < -150) label = 'deficit';
   else if (balance > 150) label = 'superavit';
-  return { intake: round(i.intakeKcal), expenditure: i.expenditure, balance, balanceLow, balanceHigh, label, confidence, warnings };
+  const insufficient = i.mealsLogged < 2;
+  return { intake: round(i.intakeKcal), expenditure: i.expenditure, balance, balanceLow, balanceHigh, label, confidence, warnings, insufficient };
 }
 
 export interface AdaptiveDay {

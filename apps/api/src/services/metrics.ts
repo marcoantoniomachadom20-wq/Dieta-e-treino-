@@ -241,13 +241,16 @@ export function weeklyReport(db: DB, user: UserRow, weekStart: string) {
   }).length;
   const targets = targetsFor(db, user.id, weekEnd);
   const sessions = sessionsBetween(db, user.id, weekStart, weekEnd);
-  const count = (type: ActivityType) => ({
-    done: sessions.filter((s) => s.type === type && s.status === 'concluido').length,
-    planned: Math.max(
-      sessions.filter((s) => s.type === type && !s.optional && s.status !== 'em_andamento').length,
-      type === 'musculacao' ? user.lift_target_per_week : 0,
-    ),
-  });
+  // Planejado = o que a agenda previa (inclui pulados). Na semana em que a conta foi criada,
+  // só conta a partir do cadastro — não cobra a meta cheia de dias que não existiam no sistema.
+  const created = user.created_at.slice(0, 10);
+  const daysActive = Math.min(7, Math.max(0, diffDays(created > weekStart ? created : weekStart, weekEnd) + 1));
+  const count = (type: ActivityType) => {
+    const done = sessions.filter((s) => s.type === type && s.status === 'concluido').length;
+    const scheduled = sessions.filter((s) => s.type === type && !s.optional && s.status !== 'em_andamento').length;
+    const target = type === 'musculacao' ? Math.round((user.lift_target_per_week * daysActive) / 7) : 0;
+    return { done, planned: Math.max(done, scheduled, target) };
+  };
   const vol = (from: string, to: string) =>
     (db.prepare(`SELECT COALESCE(SUM(volume_kg),0) v FROM workouts WHERE user_id = ? AND type='musculacao' AND status='concluido' AND date BETWEEN ? AND ?`).get(user.id, from, to) as { v: number }).v;
   const rec = recoveryBetween(db, user.id, weekStart, weekEnd);

@@ -13,7 +13,7 @@ import {
   type SetLog,
 } from '@app/core';
 import type { DB } from '../db';
-import { getUser, httpError, userToday, type UserRow } from './users';
+import { getUser, httpError, userNowTime, userToday, type UserRow } from './users';
 
 interface WorkoutRow {
   id: number;
@@ -152,17 +152,20 @@ export function skipWorkout(db: DB, userId: number, workoutId: number, reason?: 
 }
 
 /** Contexto de prontidão do dia para ajustar o treino. */
-export function readinessContext(db: DB, user: UserRow, date: string) {
+export function readinessContext(db: DB, user: UserRow, date: string, nowTime?: string) {
   const rec = db.prepare('SELECT status FROM recovery_checkins WHERE user_id = ? AND date = ?').get(user.id, date) as { status: RecoveryStatus } | undefined;
   const sports = db
-    .prepare(`SELECT type, planned_time, date FROM workouts WHERE user_id = ? AND type != 'musculacao' AND status != 'pulado' AND date IN (?, ?)`)
-    .all(user.id, date, addDays(date, 1)) as { type: ActivityType; planned_time: string | null; date: string }[];
+    .prepare(`SELECT type, planned_time, date, status FROM workouts WHERE user_id = ? AND type != 'musculacao' AND status != 'pulado' AND date IN (?, ?)`)
+    .all(user.id, date, addDays(date, 1)) as { type: ActivityType; planned_time: string | null; date: string; status: string }[];
+  // "Mais tarde hoje" = ainda não feito e com horário depois de agora (sem horário conta como mais tarde).
+  const isLater = (s: { date: string; planned_time: string | null; status: string }) =>
+    s.date === date && s.status !== 'concluido' && (!s.planned_time || !nowTime || s.planned_time > nowTime);
   const loadRows = db
     .prepare(`SELECT date, type, rpe, duration_min FROM workouts WHERE user_id = ? AND status = 'concluido' AND date >= ? AND date <= ?`)
     .all(user.id, addDays(date, -27), date) as { date: string; type: ActivityType; rpe: number | null; duration_min: number | null }[];
   return {
     recovery: rec?.status ?? null,
-    sportLaterToday: sports.find((s) => s.date === date)?.type ?? null,
+    sportLaterToday: sports.find(isLater)?.type ?? null,
     sportTomorrow: sports.find((s) => s.date === addDays(date, 1))?.type ?? null,
     load: loadTrend(loadRows, date),
   };
@@ -181,7 +184,7 @@ export function startWorkout(db: DB, userId: number, workoutId: number, nowIso: 
     db.prepare(`UPDATE workouts SET status = 'em_andamento', started_at = ?, date = ? WHERE id = ?`).run(nowIso, today, workoutId);
     if (w.type !== 'musculacao' || !w.template_id) return { advice: null };
     const tpl = db.prepare('SELECT code, lower_load FROM workout_templates WHERE id = ?').get(w.template_id) as { code: string; lower_load: number };
-    const ctx = readinessContext(db, user, today);
+    const ctx = readinessContext(db, user, today, userNowTime(user));
     const advice = sessionAdvice({ template: tpl, recovery: ctx.recovery, sportLaterToday: ctx.sportLaterToday, sportTomorrow: ctx.sportTomorrow, loadTrend: ctx.load.label });
     const exercises = db.prepare('SELECT * FROM template_exercises WHERE template_id = ? ORDER BY position').all(w.template_id) as {
       name: string;

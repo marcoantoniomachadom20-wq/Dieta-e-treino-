@@ -12,12 +12,14 @@
     "start": "npm run start -w @app/api",
     "test": "npm test -w @app/core && npm test -w @app/api",
     "typecheck": "npm run typecheck -w @app/core && npm run typecheck -w @app/api && npm run typecheck -w @app/web",
-    "backup": "npm run backup -w @app/api"
+    "backup": "npm run backup -w @app/api",
+    "e2e": "./scripts/e2e-local.sh"
   },
   "engines": {
     "node": ">=20"
   },
   "devDependencies": {
+    "@playwright/test": "1.56",
     "typescript": "^5.9.3",
     "vitest": "^3.2.7"
   }

@@ -17,7 +17,7 @@ import { requireAuth } from '../auth';
 import type { DB } from '../db';
 import { ensureWeekPlan, lastSetsFor, readinessContext, replanLifts, skipWorkout, startWorkout } from '../services/plan';
 import { streaks } from '../services/metrics';
-import { getUser, httpError, userToday } from '../services/users';
+import { getUser, httpError, userNowTime, userToday } from '../services/users';
 import { hhmm, idParam, isoDate, notFound, parse } from './_util';
 
 const activity = z.enum(['musculacao', 'futevolei', 'tenis', 'recuperacao', 'outro']);
@@ -114,8 +114,11 @@ export async function workoutRoutes(app: FastifyInstance, { db }: AppContext) {
     ensureWeekPlan(db, user, weekStart(today));
     const ids = db.prepare(`SELECT id FROM workouts WHERE user_id = ? AND date = ? ORDER BY COALESCE(planned_time,'99')`).all(user.id, today) as { id: number }[];
     const sessions = ids.map((r) => workoutDetail(db, user.id, r.id));
-    const ctx = readinessContext(db, user, today);
     const lift = sessions.find((s) => s.type === 'musculacao' && s.template);
+    // Referência = horário planejado do treino (se ainda for depois de agora): treino marcado após o jogo não é "antes do jogo".
+    const now = userNowTime(user);
+    const ref = lift?.status === 'planejado' && lift.planned_time && lift.planned_time > now ? lift.planned_time : now;
+    const ctx = readinessContext(db, user, today, ref);
     const advice = lift
       ? sessionAdvice({ template: lift.template, recovery: ctx.recovery, sportLaterToday: ctx.sportLaterToday, sportTomorrow: ctx.sportTomorrow, loadTrend: ctx.load.label })
       : null;
@@ -373,7 +376,7 @@ export async function workoutRoutes(app: FastifyInstance, { db }: AppContext) {
       },
       weeklyVolume,
       streak: streaks(db, user, today),
-      weekdayNames: weekday(today),
+      today,
     };
   });
 }
