@@ -1,0 +1,24 @@
+{
+  "name": "performance-pessoal",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @app/api & npm run dev -w @app/web",
+    "build": "npm run build -w @app/web",
+    "start": "npm run start -w @app/api",
+    "test": "npm test -w @app/core && npm test -w @app/api",
+    "typecheck": "npm run typecheck -w @app/core && npm run typecheck -w @app/api && npm run typecheck -w @app/web",
+    "backup": "npm run backup -w @app/api"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
