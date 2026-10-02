@@ -1,6 +1,18 @@
+import fs from 'node:fs';
 import path from 'node:path';
 
 const root = path.resolve(process.cwd(), process.cwd().endsWith(path.join('apps', 'api')) ? '../..' : '.');
+
+// Carrega o .env da raiz do projeto (variáveis já definidas no ambiente têm prioridade).
+const envFile = path.join(root, '.env');
+if (fs.existsSync(envFile) && !process.env.VITEST) {
+  for (const line of fs.readFileSync(envFile, 'utf8').split(/\r?\n/)) {
+    const m = line.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*?)\s*$/);
+    if (!m || line.trimStart().startsWith('#')) continue;
+    const value = m[2].replace(/^["']|["']$/g, '');
+    if (!process.env[m[1]] && value !== '') process.env[m[1]] = value;
+  }
+}
 
 export const config = {
   port: Number(process.env.PORT ?? 3001),
