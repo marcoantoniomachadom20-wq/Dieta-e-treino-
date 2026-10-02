@@ -1,4 +1,7 @@
-# Integrações de dados de saúde (Fase 3)
+# Integrações de dados de saúde
+
+> **Fora do escopo por decisão do usuário.** A entrada manual dos dados do relógio (Dieta → Gasto) é a
+> solução definitiva. Este documento fica só como registro, caso a decisão mude.
 
 Hoje o gasto energético entra **manualmente** (Dieta → Gasto). A tabela `energy_logs` já tem a coluna
 `source` e a rota `POST /api/energy` aceita os mesmos campos que uma integração enviaria.

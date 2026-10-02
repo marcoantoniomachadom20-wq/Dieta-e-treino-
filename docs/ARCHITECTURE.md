@@ -81,5 +81,5 @@ checa coerência kcal × macros → o usuário revisa/corrige → só então `PO
 - `password_hash` nunca sai da API (há teste para isso).
 - Backup consistente via `npm run backup`; exportação JSON pelo app.
 
-Fora do escopo atual: 2FA, criptografia do banco em repouso (use disco criptografado no servidor),
-rate limit global.
+Fora do escopo: 2FA (decisão do usuário), criptografia do banco em repouso (use disco criptografado no
+servidor), rate limit global.

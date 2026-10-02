@@ -440,7 +440,7 @@ function Energy({ date }: { date: string }) {
         >
           Salvar
         </button>
-        <p className="xs muted" style={{ marginBottom: 0 }}>Entrada manual por enquanto. A integração automática depende de acesso aprovado às APIs (veja docs/INTEGRATIONS.md).</p>
+        <p className="xs muted" style={{ marginBottom: 0 }}>Copie os números do app Garmin Connect no fim do dia.</p>
       </Card>
     </>
   );

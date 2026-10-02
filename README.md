@@ -81,5 +81,8 @@ Detalhes: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) · [docs/DECISIONS.md](do
 | 2 | Fotos corporais privadas + comparação antes × agora | ✅ |
 | 2 | Performance (cargas, PRs, esportes, carga semanal), relatório semanal, insights | ✅ |
 | extra | Lista de compras, metas com progresso, gasto energético manual (Garmin), exportação | ✅ |
-| 3 | Integração automática Garmin / Health Connect / Apple Health | ❌ ver [INTEGRATIONS](docs/INTEGRATIONS.md) |
-| 3 | Notificações push, automações | ❌ |
+| — | Integração automática Garmin / Health Connect / Apple Health | fora do escopo (decisão do usuário); dados do relógio entram manualmente |
+| — | Notificações push, 2FA | fora do escopo (decisão do usuário) |
+
+**Pendente de validação:** a análise de foto nunca foi executada contra a API real (só com um analisador
+falso nos testes). Faça o primeiro teste com uma refeição simples depois de configurar `ANTHROPIC_API_KEY`.
